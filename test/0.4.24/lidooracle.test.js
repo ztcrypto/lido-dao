@@ -218,6 +218,18 @@ contract('LidoOracle', ([appManager, voting, user1, user2, user3, user4, nobody]
         await assertReportableEpochs(1, 0)
       })
 
+      it('getLastPushedFrame works', async () => {
+        console.log(await app.getLastPushedFrame())
+        await app.reportBeacon(0, 32, 1, { from: user1 })
+        console.log(await app.getLastPushedFrame())
+      })
+
+      it('getReportableFrames works', async () => {
+        console.log(await app.getReportableFrames())
+        await app.reportBeacon(0, 32, 1, { from: user1 })
+        console.log(await app.getReportableFrames())
+      })
+
       it('reverts when trying to report this epoch again', async () => {
         await app.reportBeacon(0, 32, 1, { from: user1 })
         await assertRevert(app.reportBeacon(0, 32, 1, { from: user1 }), 'EPOCH_IS_TOO_OLD')

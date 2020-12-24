@@ -4,6 +4,7 @@
 
 /* See contracts/COMPILERS.md */
 pragma solidity 0.4.24;
+pragma experimental ABIEncoderV2;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
@@ -50,6 +51,19 @@ contract LidoOracle is ILidoOracle, AragonApp {
     struct EpochData {
         uint256 reportsBitMask;
         mapping (uint256 => Report) reports;
+    }
+
+    struct ReportRepr {
+        address member;
+        uint128 beaconBalance;
+        uint128 beaconValidators;
+    }
+
+    struct FrameDataRepr {
+        uint256 frameEpochId;
+        uint256 frameStartTime;
+        uint256 frameEndTime;
+        ReportRepr[] reports;
     }
 
     /// ACL
@@ -231,16 +245,104 @@ contract LidoOracle is ILidoOracle, AragonApp {
             uint256 frameEndTime
         )
     {
+        return _getFrameByEpoch(getCurrentEpochId());
+    }
+
+    function _getFrameByEpoch(uint256 _epochId)
+        internal
+        view
+        returns (
+            uint256 frameEpochId,
+            uint256 frameStartTime,
+            uint256 frameEndTime
+        )
+    {
         BeaconSpec memory beaconSpec = _getBeaconSpec();
         uint64 genesisTime = beaconSpec.genesisTime;
         uint64 epochsPerFrame = beaconSpec.epochsPerFrame;
         uint64 secondsPerEpoch = beaconSpec.secondsPerSlot.mul(beaconSpec.slotsPerEpoch);
 
-        frameEpochId = getCurrentEpochId().div(epochsPerFrame).mul(epochsPerFrame);
+        frameEpochId = _epochId.div(epochsPerFrame).mul(epochsPerFrame);
         frameStartTime = frameEpochId.mul(secondsPerEpoch).add(genesisTime);
 
         uint256 nextFrameEpochId = frameEpochId.div(epochsPerFrame).add(1).mul(epochsPerFrame);
         frameEndTime = nextFrameEpochId.mul(secondsPerEpoch).add(genesisTime).sub(1);
+
+        return (frameEpochId, frameStartTime, frameEndTime);
+    }
+
+    function _getReports(uint256 _epochId)
+        internal
+        view
+        returns (ReportRepr[] memory reports)
+    {
+        uint256 i;
+        uint256 i_member = 0;
+
+        uint256 reportsBitMask = gatheredEpochData[_epochId].reportsBitMask;
+        uint256 popcnt = reportsBitMask.popcnt();
+        reports = new ReportRepr[](popcnt);
+        Report memory tmpReport;
+        for (i = 0; i < members.length; i++) {
+            if (reportsBitMask & 1 == 1) {
+                reports[i].member = members[i_member];
+                tmpReport = gatheredEpochData[_epochId].reports[i_member];
+                reports[i].beaconBalance = tmpReport.beaconBalance;
+                reports[i].beaconValidators = tmpReport.beaconValidators;
+            }
+            i_member++;
+            reportsBitMask >>= 1;
+        }
+
+        return reports;
+    }
+
+    function getLastPushedFrame() external view returns (FrameDataRepr memory lastPushedFrame)
+    {
+        uint256 minReportableEpochId = MIN_REPORTABLE_EPOCH_ID_POSITION.getStorageUint256();
+        
+        if (minReportableEpochId == 0)
+            return FrameDataRepr(0, 0, 0, new ReportRepr[](0));
+
+        (
+            lastPushedFrame.frameEpochId,
+            lastPushedFrame.frameStartTime,
+            lastPushedFrame.frameEndTime
+        ) = _getFrameByEpoch(minReportableEpochId.sub(1));
+        lastPushedFrame.reports = _getReports(minReportableEpochId.sub(1));
+
+        return lastPushedFrame;
+    }
+
+    function getReportableFrames() external view returns (FrameDataRepr[] memory reportableFrames)
+    {
+        BeaconSpec memory beaconSpec = _getBeaconSpec();
+        uint64 epochsPerFrame = beaconSpec.epochsPerFrame;
+
+        uint256 minReportableEpochId = MIN_REPORTABLE_EPOCH_ID_POSITION.getStorageUint256();
+        uint256 maxReportableEpochId = getCurrentEpochId();
+
+        if (minReportableEpochId > maxReportableEpochId)
+            return new FrameDataRepr[](0);
+
+        uint256 nReportableEpochs = maxReportableEpochId.sub(minReportableEpochId).add(1);
+        uint256 nReportableFrames = nReportableEpochs.div(epochsPerFrame).add(1);
+
+        reportableFrames = new FrameDataRepr[](nReportableFrames);
+
+        uint256 itReportableEpochId = minReportableEpochId;
+
+        for (uint256 i = 0; i < nReportableFrames; i++) {
+            (
+                reportableFrames[i].frameEpochId,
+                reportableFrames[i].frameStartTime, 
+                reportableFrames[i].frameEndTime
+            ) = _getFrameByEpoch(itReportableEpochId);
+            reportableFrames[i].reports = _getReports(reportableFrames[i].frameEpochId);
+            itReportableEpochId += epochsPerFrame;
+        }
+
+        return reportableFrames;
     }
 
     /**
