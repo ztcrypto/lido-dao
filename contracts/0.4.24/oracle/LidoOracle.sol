@@ -60,9 +60,9 @@ contract LidoOracle is ILidoOracle, AragonApp {
     }
 
     struct FrameDataRepr {
-        uint256 frameEpochId;
-        uint256 frameStartTime;
-        uint256 frameEndTime;
+        uint256 epochId;
+        uint256 startTime;
+        uint256 endTime;
         ReportRepr[] reports;
     }
 
@@ -258,9 +258,9 @@ contract LidoOracle is ILidoOracle, AragonApp {
         )
     {
         BeaconSpec memory beaconSpec = _getBeaconSpec();
-        uint64 genesisTime = beaconSpec.genesisTime;
-        uint64 epochsPerFrame = beaconSpec.epochsPerFrame;
-        uint64 secondsPerEpoch = beaconSpec.secondsPerSlot.mul(beaconSpec.slotsPerEpoch);
+        uint256 genesisTime = beaconSpec.genesisTime;
+        uint256 epochsPerFrame = beaconSpec.epochsPerFrame;
+        uint256 secondsPerEpoch = beaconSpec.secondsPerSlot.mul(beaconSpec.slotsPerEpoch);
 
         frameEpochId = _epochId.div(epochsPerFrame).mul(epochsPerFrame);
         frameStartTime = frameEpochId.mul(secondsPerEpoch).add(genesisTime);
@@ -297,24 +297,76 @@ contract LidoOracle is ILidoOracle, AragonApp {
         return reports;
     }
 
-    function getLastPushedFrame() external view returns (FrameDataRepr memory lastPushedFrame)
+    function getLastPushedFrame() public view returns (FrameDataRepr memory lastPushedFrame)
     {
         uint256 minReportableEpochId = MIN_REPORTABLE_EPOCH_ID_POSITION.getStorageUint256();
-        
-        if (minReportableEpochId == 0)
-            return FrameDataRepr(0, 0, 0, new ReportRepr[](0));
+
+        if (minReportableEpochId == 0) {
+            lastPushedFrame.epochId = 0;
+            lastPushedFrame.startTime = 0;
+            lastPushedFrame.endTime = 0;
+            lastPushedFrame.reports = new ReportRepr[](0);
+            return lastPushedFrame;
+        }
 
         (
-            lastPushedFrame.frameEpochId,
-            lastPushedFrame.frameStartTime,
-            lastPushedFrame.frameEndTime
+            lastPushedFrame.epochId,
+            lastPushedFrame.startTime,
+            lastPushedFrame.endTime
         ) = _getFrameByEpoch(minReportableEpochId.sub(1));
+
         lastPushedFrame.reports = _getReports(minReportableEpochId.sub(1));
 
         return lastPushedFrame;
     }
 
-    function getReportableFrames() external view returns (FrameDataRepr[] memory reportableFrames)
+    // Just for test
+    // {
+    struct TestStruct {
+        uint256 a;
+        uint256 b;
+        uint256 c;
+        InnerTestStruct[] d;
+    }
+
+    struct InnerTestStruct {
+        address a;
+        uint128 b;
+        uint128 c;
+    }
+
+    bytes32 internal constant PARAM = keccak256("param");
+
+    function setParam(uint256 _param) external {
+        PARAM.setStorageUint256(_param);
+    }
+
+    function getParam() external view returns (uint256) {
+        return PARAM.getStorageUint256();
+    }
+
+    function test() external pure returns (uint256) {
+        return 123;
+    }
+
+    function testEncoderV2(uint256 n) external view returns (TestStruct[] memory testStructs) {
+        testStructs = new TestStruct[](n);
+
+        for (uint256 i = 0; i < n; i++) {
+            (testStructs[i].a, testStructs[i].b, testStructs[i].c) = getData(i);
+            testStructs[i].d = new InnerTestStruct[](i);
+        }
+
+        return testStructs;
+    }
+
+    function getData(uint256 i) internal view returns (uint256 a, uint256 b, uint256 c) {
+        uint256 param = PARAM.getStorageUint256();
+        return (i, param, i);
+    }
+    // }
+
+    function getReportableFrames() public view returns (FrameDataRepr[] memory reportableFrames)
     {
         BeaconSpec memory beaconSpec = _getBeaconSpec();
         uint64 epochsPerFrame = beaconSpec.epochsPerFrame;
@@ -334,11 +386,11 @@ contract LidoOracle is ILidoOracle, AragonApp {
 
         for (uint256 i = 0; i < nReportableFrames; i++) {
             (
-                reportableFrames[i].frameEpochId,
-                reportableFrames[i].frameStartTime, 
-                reportableFrames[i].frameEndTime
+                reportableFrames[i].epochId,
+                reportableFrames[i].startTime,
+                reportableFrames[i].endTime
             ) = _getFrameByEpoch(itReportableEpochId);
-            reportableFrames[i].reports = _getReports(reportableFrames[i].frameEpochId);
+            reportableFrames[i].reports = _getReports(reportableFrames[i].epochId);
             itReportableEpochId += epochsPerFrame;
         }
 
