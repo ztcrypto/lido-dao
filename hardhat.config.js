@@ -47,6 +47,12 @@ const getNetConfig = (networkName, ethAccountName) => {
       url: 'http://206.81.31.11/rpc',
       chainId: 5
     },
+    'goerli': {
+      ...base,
+      url: 'https://goerli.infura.io/v3/' + accounts.infura.projectId,
+      chainId: 5,
+      timeout: 60000 * 10
+    },
     rinkeby: {
       ...base,
       url: 'https://rinkeby.infura.io/v3/' + accounts.infura.projectId,
