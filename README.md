@@ -1,3 +1,16 @@
+# Programming assignment
+
+Background: Lido is a protocol that lets users stake their ETH in the Ethereum 2.0 Beacon Chain and provides them with stETH. stETH is an interest bearing version of ETH, meaning users who hold it will see their balance increase over time. For this assignment, you will:
+* Interact with deployed Lido contracts on the Görli testnet OR deploy them on a local blockchain (see below documentation)
+* Write and deploy a smart contract that takes in the user's ETH and deposits it to Lido. This will convert the ETH to stETH, which your smart contract will custody
+* In this contract, enable the user who made the deposit to withdraw only as much stETH as they deposited (i.e. if they deposited 10 ETH, allow them to withdraw up to 10 stETH from the contract)
+* Write test cases for this function in a language / framework of your choice
+* Add a new section in this file that describes your process clearly enough to replicate
+ 
+To complete the assignment, fork this repository and make changes there. Your submission will be judged based on functionality, documentation, and test coverage. We recommend spending no more than three hours on this assignment.
+
+<hr/>
+
 # Lido Ethereum Liquid Staking Protocol
 
 [![Tests](https://github.com/lidofinance/lido-dao/workflows/Tests/badge.svg)](https://github.com/lidofinance/lido-dao/actions)
