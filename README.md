@@ -7,7 +7,7 @@ Background: Lido is a protocol that lets users stake their ETH in the Ethereum 2
 * Write test cases for this function in a language / framework of your choice
 * Add a new section in this file that describes your process clearly enough to replicate
  
-To complete the assignment, fork this repository and make changes there. Your submission will be judged based on functionality, documentation, and test coverage. We recommend spending no more than three hours on this assignment.
+To complete the assignment, fork this repo, make changes there, and then add Github user sforman2000 to the repo when you're finished. Your submission will be judged based on functionality, documentation, and test coverage. We recommend spending no more than three hours on this assignment.
 
 <hr/>
 
