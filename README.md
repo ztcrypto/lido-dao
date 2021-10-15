@@ -9,6 +9,13 @@ Background: Lido is a protocol that lets users stake their ETH in the Ethereum 2
  
 To complete the assignment, fork this repo, make changes there, and then add Github user sforman2000 to the repo when you're finished. Your submission will be judged based on functionality, documentation, and test coverage. We recommend spending no more than three hours on this assignment.
 
+## Process explained
+
+After the installation try `yarn test:task` and you will get the test result of task contract.
+
+* Contract source: `./contracts/TestDeposit.sol`
+* Test source: `./test/testDeposit.test.js`
+
 <hr/>
 
 # Lido Ethereum Liquid Staking Protocol
